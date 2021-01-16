@@ -1,0 +1,241 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import random
+import operator
+
+# 将dataset1的数据转换成相同的单位
+# boy:male
+# girl:female
+def change_Gender(state):
+    if state=='boy':
+        state='male'
+    if state=='girl':
+        state='female'
+    return state
+
+# 将身高转换的单位转换
+# 1.66:166
+def change_Height(state):
+    state*=100
+    return state
+
+# 将成绩转换为数值类型数据
+# bad:0
+# general:1
+# good:2
+# excellent:3
+def change_Constitution(state):
+    if state=='bad':
+        state=0
+    if state=='general':
+        state=1
+    if state=='good':
+        state=2
+    if state=='excellent':
+        state=3
+    return state
+
+# 去除ID相同的数据
+def delete(data):
+    for i in range(len(data)):
+        if i < len(data) - 1:
+            j = i + 1
+            if data[i][0] == data[j][0]:
+                if (pd.isnull(data[i]).sum() > pd.isnull(data[j]).sum()):
+                    del (data[i])
+                else:
+                    del [data[j]]
+
+# 转换ID
+# 1：202001
+def change_ID(state):
+    state+=202000
+    return state
+
+# 计算一列数据的平均值
+def countmean(data,list):
+    sum=0.0
+    for i in range(len(data)):
+        sum+=data[i][list]
+    return sum/len(data)
+
+# 计算一列的协方差
+def counts(data,list):
+    sum=0.0
+    mean=countmean(data,list)
+    for i in range(len(data)):
+        sum+=math.pow(data[i][list]-mean,2)
+    return sum/(len(data)-1)
+
+# 归一化处理
+def countzscore(data,Zdata):
+    for i in range(5,14):
+        mean=countmean(data,i)
+        s=counts(data,i)
+        for j in range(len(data)):
+            Zdata[j].append((data[j][i]-mean)/math.sqrt(s))
+
+# 计算距离
+def countdistance(row1,row2):
+    sum=0.0
+    for i in range(len(row1)):
+        sum+=math.pow(row1[i]-row2[i],2)
+    return math.sqrt(sum)
+
+# 有界聚类算法
+def cluster(Zdata,k,limit):
+    p=0
+    center = []
+    type = {}
+    # 随机生成k个聚类中心
+    # 类别为数字，比如：0,1,2,3,...
+    for i in range(k):
+        r = random.randint(0, 99)
+        if r not in center:
+            # 聚类中心是n行(C1-C9成绩)的数据
+            center.append(Zdata[r])
+            # Zdata的第r行的类别是i
+            type[r] = i
+    # p为界限值(自定义)
+    while(p<limit):
+        p+=1
+        # 计算Zdata中每个学生与k个聚类中心的距离
+        for q in range(len(Zdata)):
+            dis={}
+            for w in range(k):
+                dis[w]=countdistance(Zdata[q],center[w])
+            # 选取每个学生与k个聚类中心的最近距离的一个类
+            diss=sorted(dis.items(), key=operator.itemgetter(1), reverse=False)
+            type[q]=diss[0][0]
+        types=sorted(type.items(), key=operator.itemgetter(1), reverse=False)
+        newcenter=[]
+        for q in range(k):
+            data=[]
+            for w in range(9):
+                sum=0.0
+                num=0
+                for r in range(len(types)):
+                    if(q==types[r][1]):
+                        num+=1
+                        sum+=Zdata[r][w]
+                mean=sum/num
+                data.append(mean)
+            newcenter.append(data)
+        if newcenter==center:
+            break
+        else:
+            center=newcenter
+            #print(newcenter)
+            #print(center)
+    print("数据分为"+str(k)+"类,每行数据的类型:")
+    print(type)
+    return type
+
+def main():
+    data=[]
+    # 处理Text文件的数据
+    # 读取数据
+    dataset1 = pd.read_csv(r"C:\Users\SAMSUNG\Desktop\数据挖掘\一.数据源2-逗号间隔.txt", sep=',')
+    data1=[[] for i in range(len(dataset1))]
+    # 逐个数据处理，并放入data1(C10置0)
+    for i in range(len(dataset1)):
+        data1[i].append(dataset1['ID'][i])
+        data1[i].append(dataset1['Name'][i])
+        data1[i].append(dataset1['City'][i])
+        data1[i].append(change_Gender(dataset1['Gender'][i]))
+        data1[i].append(change_Height(dataset1['Height'][i]))
+        data1[i].append(dataset1['C1'][i])
+        data1[i].append(dataset1['C2'][i])
+        data1[i].append(dataset1['C3'][i])
+        data1[i].append(dataset1['C4'][i])
+        data1[i].append(dataset1['C5'][i])
+        data1[i].append(dataset1['C6'][i])
+        data1[i].append(dataset1['C7'][i])
+        data1[i].append(dataset1['C8'][i])
+        data1[i].append(dataset1['C9'][i])
+        data1[i].append(0)
+        data1[i].append(change_Constitution(dataset1['Constitution'][i]))
+    delete(data1)
+
+    # 处理Xlsx文件的数据
+    dataset2=pd.read_csv(r"C:\Users\SAMSUNG\Desktop\数据挖掘\一.数据源1.csv")
+    data2=[[] for i in range(len(dataset2))]
+    for i in range(len(data2)):
+        data2[i].append(change_ID(dataset2['ID'][i]))
+        data2[i].append(dataset2['Name'][i])
+        data2[i].append(dataset2['City'][i])
+        data2[i].append(change_Gender(dataset2['Gender'][i]))
+        data2[i].append(dataset2['Height'][i])
+        data2[i].append(dataset2['C1'][i])
+        data2[i].append(dataset2['C2'][i])
+        data2[i].append(dataset2['C3'][i])
+        data2[i].append(dataset2['C4'][i])
+        data2[i].append(dataset2['C5'][i])
+        data2[i].append(dataset2['C6'][i])
+        data2[i].append(dataset2['C7'][i])
+        data2[i].append(dataset2['C8'][i])
+        data2[i].append(dataset2['C9'][i])
+        data2[i].append(0)
+        data2[i].append(change_Constitution(dataset2['Constitution'][i]))
+    delete(data2)
+    # 合并两张表
+    i=0
+    j=0
+    # i作为data1的索引，j作为data2的索引，按ID大小排序放进data，去除相同的ID号
+    while i!=len(data1) and j!=len(data2):
+        if (data1[i][0]<data2[j][0]):
+            data.append(data1[i])
+            i+=1
+        elif (data1[i][0]>data2[j][0]):
+            data.append(data2[j])
+            j+=1
+        elif(data1[i][0]==data2[j][0]):
+            new=[]
+            for k in range(16):
+                if(pd.isnull(data1[i][k])!=1):
+                    new.append(data1[i][k])
+                else:new.append(data2[j][k])
+            data.append(new)
+            i+=1
+            j+=1
+    if(i==len(data1)):
+        while(j!=len(data2)):
+            data.append(data2[j])
+            j+=1
+    else:
+        while(i!=len(data1)):
+            data.append(data1[i])
+            i+=1
+    # 把空数据置为0
+    for i in range(len(data)):
+        for j in range(16):
+            if(pd.isnull(data[i][j])):
+                data[i][j]=0
+    print("合并:")
+    print(data)
+
+    data = data[0:100]
+
+    # 归一化
+    Zdata = [[] for i in range(len(data))]
+    countzscore(data,Zdata)
+    print("归一化的数据矩阵:")
+    print(Zdata)
+
+    Zdata=Zdata[0:100]
+
+    #4类
+    # x,y坐标点
+    L1 = [n[0] for n in Zdata]
+    L2 = [n[1] for n in Zdata]
+    # 类型
+    L3=[]
+    type=cluster(Zdata,4,1000)
+    for i in range(len(Zdata)):
+        L3.append(type[i])
+    # 画图
+    plt.scatter(L1, L2, c=L3, cmap=plt.cm.spring, edgecolor='k')
+    plt.show()
+
+main()
