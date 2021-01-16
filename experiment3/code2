@@ -1,0 +1,80 @@
+import random
+import math
+import operator
+import matplotlib.pyplot as plt
+
+# 计算距离
+def countdistance(row1,row2):
+    sum=0.0
+    for i in range(len(row1)):
+        sum+=math.pow(row1[i]-row2[i],2)
+    return math.sqrt(sum)
+
+# 有界聚类算法
+def cluster(Zdata,k,limit):
+    p=0
+    center = []
+    type = {}
+    # 随机生成k个聚类中心
+    # 类别为数字，比如：0,1,2,3,...
+    for i in range(k):
+        r = random.randint(0, len(Zdata)-1)
+        if r not in center:
+            center.append(Zdata[r])
+            # Zdata的第r行的类别是i
+            type[r] = i
+    # p为界限值(自定义)
+    while(p<limit):
+        p+=1
+        # 计算Zdata中每个学生与k个聚类中心的距离
+        for q in range(len(Zdata)):
+            dis={}
+            for w in range(k):
+                dis[w]=countdistance(Zdata[q],center[w])
+            # 选取每个学生与k个聚类中心的最近距离的一个类
+            diss=sorted(dis.items(), key=operator.itemgetter(1), reverse=False)
+            type[q]=diss[0][0]
+        types=sorted(type.items(), key=operator.itemgetter(1), reverse=False)
+        newcenter=[]
+        for q in range(k):
+            data=[]
+            for w in range(2):
+                sum=0.0
+                num=0
+                for r in range(len(types)):
+                    if(q==types[r][1]):
+                        num+=1
+                        sum+=Zdata[r][w]
+                mean=sum/num
+                data.append(mean)
+            newcenter.append(data)
+        if newcenter==center:
+            break
+        else:
+            center=newcenter
+            #print(newcenter)
+            #print(center)
+    print("数据分为"+str(k)+"类,每行数据的类型:")
+    print(type)
+    return type
+
+def main():
+    Zdata=[[3.45,7.08],[1.76,7.24],[4.29,9.55],[3.35,6.65],[3.17,6.41],[3.68,5.99],[2.11,4.08],[2.58,7.10],[3.45,7.88],
+           [6.17,5.40],[4.20,6.46],[5.87,3.87],[5.47,2.21],[5.97,3.62],[6.24,3.06],[6.89,2.41],[5.38,2.32],[5.13,2.73],
+           [7.26,4.19],[6.32,3.62]]
+    # 4类
+    # x,y坐标点
+    L1 = [n[0] for n in Zdata]
+    L2 = [n[1] for n in Zdata]
+    # 类型
+    L3 = []
+    type = cluster(Zdata, 4, 1000)
+    for i in range(len(Zdata)):
+        L3.append(type[i])
+    # 画图
+    plt.scatter(L1, L2, c=L3, cmap=plt.cm.spring, edgecolor='k')
+    plt.show()
+
+    print("(2,6)是属于:"+str(type[6])+"类")
+
+main()
