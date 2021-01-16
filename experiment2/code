@@ -1,0 +1,232 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import operator
+import os
+
+# 将dataset1的数据转换成相同的单位
+# boy:male
+# girl:female
+def change_Gender(state):
+    if state=='boy':
+        state='male'
+    if state=='girl':
+        state='female'
+    return state
+
+# 将身高转换的单位转换
+# 1.66:166
+def change_Height(state):
+    state*=100
+    return state
+
+# 将成绩转换为数值类型数据
+# bad:0
+# general:1
+# good:2
+# excellent:3
+def change_Constitution(state):
+    if state=='bad':
+        state=0
+    if state=='general':
+        state=1
+    if state=='good':
+        state=2
+    if state=='excellent':
+        state=3
+    return state
+
+# 去除ID相同的数据
+def delete(data):
+    for i in range(len(data)):
+        if i < len(data) - 1:
+            j = i + 1
+            if data[i][0] == data[j][0]:
+                if (pd.isnull(data[i]).sum() > pd.isnull(data[j]).sum()):
+                    del (data[i])
+                else:
+                    del [data[j]]
+
+# 转换ID
+# 1：202001
+def change_ID(state):
+    state+=202000
+    return state
+
+# 计算一列数据的平均值
+def countmean(data,list):
+    sum=0.0
+    for i in range(len(data)):
+        sum+=data[i][list]
+    return sum/len(data)
+
+# 计算一列的协方差
+def counts(data,list):
+    sum=0.0
+    mean=countmean(data,list)
+    for i in range(len(data)):
+        sum+=math.pow(data[i][list]-mean,2)
+    return sum/(len(data)-1)
+
+# 归一化处理
+def countzscore(data,Zdata):
+    for i in range(5,14):
+        mean=countmean(data,i)
+        s=counts(data,i)
+        for j in range(len(data)):
+            Zdata[j].append((data[j][i]-mean)/math.sqrt(s))
+
+def countrowmean(data,row):
+    sum=0.0
+    for i in range(5,14):
+        sum+=data[row][i]
+    return sum/10
+
+def countcovXY(data,row1,row2):
+    sum=0.0
+    meanX=countrowmean(data,row1)
+    meanY=countrowmean(data,row2)
+    for i in range(5,14):
+        sum+=(data[row1][i]-meanX)*(data[row2][i]-meanY)
+    return sum/10-1
+
+def countvar(data,row):
+    sum=0.0
+    mean=countrowmean(data,row)
+    for i in range(5,14):
+        sum+=math.pow((data[row][i])-mean,2)
+    return sum/10
+
+def countXGJZ(data,XGJZ):
+    for x in range(len(XGJZ)):
+        for y in range(100):
+            XGJZ[x].append(countcovXY(data,x,y)/math.sqrt(countvar(data,x)*countvar(data,y)))
+
+def main():
+    os.chdir(r'C:\Users\SAMSUNG\PycharmProjects\pythonProject4')
+    data=[]
+    # 处理Text文件的数据
+    # 读取数据
+    dataset1 = pd.read_csv(r"C:\Users\SAMSUNG\Desktop\数据挖掘\一.数据源2-逗号间隔.txt", sep=',')
+    data1=[[] for i in range(len(dataset1))]
+    # 逐个数据处理，并放入data1(C10置0)
+    for i in range(len(dataset1)):
+        data1[i].append(dataset1['ID'][i])
+        data1[i].append(dataset1['Name'][i])
+        data1[i].append(dataset1['City'][i])
+        data1[i].append(change_Gender(dataset1['Gender'][i]))
+        data1[i].append(change_Height(dataset1['Height'][i]))
+        data1[i].append(dataset1['C1'][i])
+        data1[i].append(dataset1['C2'][i])
+        data1[i].append(dataset1['C3'][i])
+        data1[i].append(dataset1['C4'][i])
+        data1[i].append(dataset1['C5'][i])
+        data1[i].append(dataset1['C6'][i])
+        data1[i].append(dataset1['C7'][i])
+        data1[i].append(dataset1['C8'][i])
+        data1[i].append(dataset1['C9'][i])
+        data1[i].append(0)
+        data1[i].append(change_Constitution(dataset1['Constitution'][i]))
+    delete(data1)
+
+    # 处理Xlsx文件的数据
+    dataset2=pd.read_csv(r"C:\Users\SAMSUNG\Desktop\数据挖掘\一.数据源1.csv")
+    data2=[[] for i in range(len(dataset2))]
+    for i in range(len(data2)):
+        data2[i].append(change_ID(dataset2['ID'][i]))
+        data2[i].append(dataset2['Name'][i])
+        data2[i].append(dataset2['City'][i])
+        data2[i].append(change_Gender(dataset2['Gender'][i]))
+        data2[i].append(dataset2['Height'][i])
+        data2[i].append(dataset2['C1'][i])
+        data2[i].append(dataset2['C2'][i])
+        data2[i].append(dataset2['C3'][i])
+        data2[i].append(dataset2['C4'][i])
+        data2[i].append(dataset2['C5'][i])
+        data2[i].append(dataset2['C6'][i])
+        data2[i].append(dataset2['C7'][i])
+        data2[i].append(dataset2['C8'][i])
+        data2[i].append(dataset2['C9'][i])
+        data2[i].append(0)
+        data2[i].append(change_Constitution(dataset2['Constitution'][i]))
+    delete(data2)
+    # 合并两张表
+    i=0
+    j=0
+    # i作为data1的索引，j作为data2的索引，按ID大小排序放进data，去除相同的ID号
+    while i!=len(data1) and j!=len(data2):
+        if (data1[i][0]<data2[j][0]):
+            data.append(data1[i])
+            i+=1
+        elif (data1[i][0]>data2[j][0]):
+            data.append(data2[j])
+            j+=1
+        elif(data1[i][0]==data2[j][0]):
+            new=[]
+            for k in range(16):
+                if(pd.isnull(data1[i][k])!=1):
+                    new.append(data1[i][k])
+                else:new.append(data2[j][k])
+            data.append(new)
+            i+=1
+            j+=1
+    if(i==len(data1)):
+        while(j!=len(data2)):
+            data.append(data2[j])
+            j+=1
+    else:
+        while(i!=len(data1)):
+            data.append(data1[i])
+            i+=1
+    # 把空数据置为0
+    for i in range(len(data)):
+        for j in range(16):
+            if(pd.isnull(data[i][j])):
+                data[i][j]=0
+    print("合并:")
+    print(data)
+
+    data = data[0:100]
+
+    # x,y坐标点
+    L1 = [n[5] for n in data]
+    L2 = [n[-1] for n in data]
+    # 散点图
+    plt.scatter(L1, L2, cmap=plt.cm.spring, edgecolor='k')
+    plt.show()
+
+    # 直方图
+    plt.hist(L1,edgecolor='b')
+    plt.show()
+
+    # 归一化
+    Zdata = [[] for i in range(len(data))]
+    countzscore(data,Zdata)
+    print("3.归一化的数据矩阵:")
+    print(Zdata)
+
+    # 相关矩阵
+    XGJZ=[[] for i in range(100)]
+    countXGJZ(data, XGJZ)
+    print("4.相关矩阵:")
+    print(XGJZ)
+    # 可视化矩阵
+    #plt.matshow(XGJZ)
+    #plt.show()
+
+    # 找到距离每个样本最近的三个样本，得到100x3的矩阵
+    Z=[]
+    print("5.距离每个样本最近的三个样本:")
+    for i in range(len(XGJZ)):
+        z={}
+        for j in range(len(XGJZ)):
+            z[j]=XGJZ[i][j]
+        D=sorted(z.items(), key=operator.itemgetter(1), reverse=True)
+        Z.append([data[D[1][0]][0],data[D[2][0]][0],data[D[3][0]][0]])
+    print(Z)
+    with open(r'C:\Users\SAMSUNG\Desktop\data.txt', 'w') as f:
+        for i in range(len(Z)):
+            f.write(str(Z[i]) + "\r")
+
+
+main()
